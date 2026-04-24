@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: fintech_app
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - fintech_network
+  postgres:
+    image: postgres:16-alpine
+    container_name: fintech_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-fintech_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-fintech_pass}
+      POSTGRES_DB: ${DB_NAME:-fintech_db}
+    ports:
+      - "5432:5432"
+    
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    
+    networks:
+      - fintech_network
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fintech_user -d fintech_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  fintech_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

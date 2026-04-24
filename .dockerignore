@@ -1,0 +1,4 @@
+node_modules
+.next
+.git
+postgres_data
