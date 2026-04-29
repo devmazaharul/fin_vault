@@ -1,0 +1,73 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client"
+  // v7 এ output পাথ দেওয়া বাধ্যতামূলক। এটি node_modules এ থাকে না।
+  output   = "./generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  // v7 এ এখানে url সরাসরি না দিলেও চলে, কারণ prisma.config.ts থেকে এটি লোড হয়।
+}
+
+// --- Enum Definitions ---
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// --- Models ---
+
+model User {
+  id            String     @id @default(uuid())
+  email         String     @unique
+  name          String?
+  address       String?
+  passcode      String     
+  balance       Decimal    @default(0.00) @db.Decimal(15, 2)
+  status        UserStatus @default(PENDING)
+  
+  resetPinToken String?    @unique
+  resetPinExpires DateTime?
+  
+  // Transactions Relation
+  sentTransactions     Transaction[] @relation("SentTransactions")
+  receivedTransactions Transaction[] @relation("ReceivedTransactions")
+
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+model Transaction {
+  id          String            @id @default(uuid())
+  amount      Decimal           @db.Decimal(15, 2)
+  status      TransactionStatus @default(PENDING)
+  reference   String?           
+
+  senderId    String
+  sender      User              @relation("SentTransactions", fields: [senderId], references: [id])
+  
+  receiverId  String
+  receiver    User              @relation("ReceivedTransactions", fields: [receiverId], references: [id])
+
+  createdAt   DateTime          @default(now())
+}
+
+model Admin {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  role      String   @default("SUPER_ADMIN")
+  createdAt DateTime @default(now())
+}
